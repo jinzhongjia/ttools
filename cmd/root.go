@@ -21,6 +21,8 @@ type GitService interface {
 	Open(path string) (*gitx.Repository, error)
 	HasStagedChanges(repo *gitx.Repository) (bool, error)
 	GetStagedDiffs(repo *gitx.Repository) ([]gitx.FileDiff, error)
+	GetWorktreeChanges(repo *gitx.Repository) ([]gitx.WorktreeChange, error)
+	StageFiles(repo *gitx.Repository, paths []string) error
 	Commit(repo *gitx.Repository, msg string) (string, error)
 }
 
@@ -29,8 +31,9 @@ type AIService interface {
 }
 
 type Deps struct {
-	Git GitService
-	AI  AIService
+	Git           GitService
+	AI            AIService
+	StageSelector StageSelector
 }
 
 type defaultGitService struct{}
@@ -43,6 +46,12 @@ func (defaultGitService) HasStagedChanges(repo *gitx.Repository) (bool, error) {
 }
 func (defaultGitService) GetStagedDiffs(repo *gitx.Repository) ([]gitx.FileDiff, error) {
 	return gitx.GetStagedDiffs(repo)
+}
+func (defaultGitService) GetWorktreeChanges(repo *gitx.Repository) ([]gitx.WorktreeChange, error) {
+	return gitx.GetWorktreeChanges(repo)
+}
+func (defaultGitService) StageFiles(repo *gitx.Repository, paths []string) error {
+	return gitx.StageFiles(repo, paths)
 }
 func (defaultGitService) Commit(repo *gitx.Repository, msg string) (string, error) {
 	h, err := gitx.Commit(repo, msg)
@@ -108,7 +117,16 @@ func newCommitCommand(deps Deps, cfgOpts *config.Options) *cobra.Command {
 				return err
 			}
 			if !has {
-				return errors.New("no staged changes found; run `git add <file>` first")
+				if err := promptAndStageFiles(cmd, deps, gitSvc, repo); err != nil {
+					return err
+				}
+				has, err = gitSvc.HasStagedChanges(repo)
+				if err != nil {
+					return err
+				}
+				if !has {
+					return nil
+				}
 			}
 			diffs, err := gitSvc.GetStagedDiffs(repo)
 			if err != nil {
@@ -147,6 +165,40 @@ func newCommitCommand(deps Deps, cfgOpts *config.Options) *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "generate message without committing")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "commit without confirmation")
 	return cmd
+}
+
+func promptAndStageFiles(cmd *cobra.Command, deps Deps, gitSvc GitService, repo *gitx.Repository) error {
+	changes, err := gitSvc.GetWorktreeChanges(repo)
+	if err != nil {
+		return err
+	}
+	if len(changes) == 0 {
+		return errors.New("no changes found")
+	}
+	selector := deps.StageSelector
+	if selector == nil {
+		selector = NewBubbleStageSelector(cmd.InOrStdin(), cmd.OutOrStdout())
+	}
+	paths, err := selector.Select(changes)
+	if err != nil {
+		return err
+	}
+	if len(paths) == 0 {
+		_, err := fmt.Fprintln(cmd.OutOrStdout(), "No files selected; commit cancelled.")
+		return err
+	}
+	if err := gitSvc.StageFiles(repo, paths); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(cmd.OutOrStdout(), "Staged %d %s.\n", len(paths), pluralize("file", len(paths)))
+	return err
+}
+
+func pluralize(word string, count int) string {
+	if count == 1 {
+		return word
+	}
+	return word + "s"
 }
 
 func confirm(in io.Reader, out io.Writer) bool {

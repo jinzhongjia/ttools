@@ -141,6 +141,58 @@ func TestUntrackedAndUnstagedFilesAreNotStagedChanges(t *testing.T) {
 	}
 }
 
+func TestGetWorktreeChangesAndStageFiles(t *testing.T) {
+	dir := t.TempDir()
+	repo, err := gogit.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, dir, "tracked.txt", "initial\n")
+	if _, err := wt.Add("tracked.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wt.Commit("initial", &gogit.CommitOptions{Author: &object.Signature{Name: "Test", Email: "test@example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	writeFile(t, dir, "tracked.txt", "modified\n")
+	writeFile(t, dir, "new.txt", "new\n")
+
+	opened, err := OpenRepository(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changes, err := GetWorktreeChanges(opened)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 2 {
+		t.Fatalf("changes = %+v", changes)
+	}
+
+	if err := StageFiles(opened, []string{"tracked.txt", "new.txt"}); err != nil {
+		t.Fatal(err)
+	}
+	has, err := HasStagedChanges(opened)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !has {
+		t.Fatal("expected staged changes after StageFiles")
+	}
+	diffs, err := GetStagedDiffs(opened)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(diffs) != 2 {
+		t.Fatalf("diffs = %+v", diffs)
+	}
+}
+
 func writeFile(t *testing.T, root, name, content string) {
 	t.Helper()
 	path := filepath.Join(root, name)

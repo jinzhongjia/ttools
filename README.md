@@ -11,6 +11,21 @@ git add .
 go run . commit
 ```
 
+If no files are staged, `ttools commit` opens an interactive file picker:
+
+```text
+No staged changes found.
+
+Select files to stage:
+> [ ] cmd/root.go (modified)
+  [ ] README.md (modified)
+  [ ] internal/git/repository.go (modified)
+
+Space to select, Enter to confirm, Esc to cancel
+```
+
+Selected files are staged with `go-git`, then the normal AI commit flow continues.
+
 Dry run:
 
 ```bash

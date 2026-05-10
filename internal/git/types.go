@@ -26,6 +26,12 @@ type FileDiff struct {
 	ConfigFile bool
 }
 
+type WorktreeChange struct {
+	Path      string
+	Status    Status
+	Untracked bool
+}
+
 type Repository struct {
 	Git  *gogit.Repository
 	Path string

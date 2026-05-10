@@ -95,6 +95,58 @@ func isStagedStatus(code gogit.StatusCode) bool {
 	return code != gogit.Unmodified && code != gogit.Untracked
 }
 
+func GetWorktreeChanges(repo *Repository) ([]WorktreeChange, error) {
+	wt, err := repo.Git.Worktree()
+	if err != nil {
+		return nil, err
+	}
+	status, err := wt.Status()
+	if err != nil {
+		return nil, err
+	}
+
+	changes := make([]WorktreeChange, 0, len(status))
+	for path, st := range status {
+		if isStagedStatus(st.Staging) {
+			continue
+		}
+		if st.Worktree == gogit.Unmodified && st.Staging != gogit.Untracked {
+			continue
+		}
+		code := st.Worktree
+		untracked := st.Staging == gogit.Untracked || st.Worktree == gogit.Untracked
+		if untracked {
+			code = gogit.Added
+		}
+		changes = append(changes, WorktreeChange{Path: path, Status: mapStatus(code), Untracked: untracked})
+	}
+	return changes, nil
+}
+
+func StageFiles(repo *Repository, paths []string) error {
+	wt, err := repo.Git.Worktree()
+	if err != nil {
+		return err
+	}
+	status, err := wt.Status()
+	if err != nil {
+		return err
+	}
+	for _, path := range paths {
+		fileStatus := status.File(path)
+		if fileStatus.Worktree == gogit.Deleted {
+			if _, err := wt.Remove(path); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, err := wt.Add(path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Commit(repo *Repository, message string) (plumbing.Hash, error) {
 	wt, err := repo.Git.Worktree()
 	if err != nil {

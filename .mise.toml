@@ -1,0 +1,25 @@
+[tools]
+go = "1.26.3"
+
+[env]
+CGO_ENABLED = "0"
+
+[tasks.fmt]
+description = "Format Go source files"
+run = "gofmt -w main.go cmd internal"
+
+[tasks.test]
+description = "Run Go tests"
+run = "go test ./..."
+
+[tasks.build]
+description = "Build all Go packages"
+run = "go build ./..."
+
+[tasks.check]
+description = "Format, test, and build"
+depends = ["fmt", "test", "build"]
+
+[tasks.run]
+description = "Run ttools CLI"
+run = "go run ."

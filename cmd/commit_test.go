@@ -153,3 +153,24 @@ func TestGenerateWithIndicatorSkipsSpinnerForNonTerminalWriter(t *testing.T) {
 		t.Fatalf("expected no spinner output for non-terminal writer, got %q", out.String())
 	}
 }
+
+func TestPrintSuggestedCommitMessageUsesPlainOutputForNonTerminalWriter(t *testing.T) {
+	var out bytes.Buffer
+	if err := printSuggestedCommitMessage(&out, "feat: test"); err != nil {
+		t.Fatal(err)
+	}
+	want := "Suggested commit message:\n\nfeat: test\n"
+	if out.String() != want {
+		t.Fatalf("output = %q, want %q", out.String(), want)
+	}
+}
+
+func TestTypewriterPrintWritesAllText(t *testing.T) {
+	var out bytes.Buffer
+	if err := typewriterPrint(&out, "hello", 0); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != "hello" {
+		t.Fatalf("output = %q", out.String())
+	}
+}

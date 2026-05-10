@@ -144,7 +144,7 @@ func newCommitCommand(deps Deps, cfgOpts *config.Options) *cobra.Command {
 				return errors.New("AI returned an empty commit message")
 			}
 			out := cmd.OutOrStdout()
-			if _, err := fmt.Fprintf(out, "Suggested commit message:\n\n%s\n", msg); err != nil {
+			if err := printSuggestedCommitMessage(out, msg); err != nil {
 				return err
 			}
 			if dryRun {
@@ -229,6 +229,24 @@ func generateWithIndicator(out io.Writer, generate func() (string, error)) (stri
 	close(done)
 	_, _ = fmt.Fprint(out, "\r\033[K")
 	return msg, err
+}
+
+func printSuggestedCommitMessage(out io.Writer, msg string) error {
+	if !isTerminalWriter(out) {
+		_, err := fmt.Fprintf(out, "Suggested commit message:\n\n%s\n", msg)
+		return err
+	}
+	return typewriterPrint(out, "Suggested commit message:\n\n"+msg+"\n", 18*time.Millisecond)
+}
+
+func typewriterPrint(out io.Writer, text string, delay time.Duration) error {
+	for _, r := range text {
+		if _, err := fmt.Fprint(out, string(r)); err != nil {
+			return err
+		}
+		time.Sleep(delay)
+	}
+	return nil
 }
 
 func isTerminalWriter(w io.Writer) bool {

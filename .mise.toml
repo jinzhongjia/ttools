@@ -1,5 +1,6 @@
 [tools]
 go = "1.26.3"
+golangci-lint = "latest"
 
 [env]
 CGO_ENABLED = "0"
@@ -8,17 +9,29 @@ CGO_ENABLED = "0"
 description = "Format Go source files"
 run = "gofmt -w main.go cmd internal"
 
+[tasks.fmt-check]
+description = "Check Go source formatting"
+run = "test -z \"$(gofmt -l main.go cmd internal)\""
+
 [tasks.test]
 description = "Run Go tests"
 run = "go test ./..."
 
 [tasks.build]
-description = "Build all Go packages"
+description = "Build ttools binary"
+run = "mkdir -p bin && go build -o bin/ttools ."
+
+[tasks.build-check]
+description = "Build all Go packages without producing artifacts"
 run = "go build ./..."
 
+[tasks.lint]
+description = "Run golangci-lint"
+run = "golangci-lint run ./..."
+
 [tasks.check]
-description = "Format, test, and build"
-depends = ["fmt", "test", "build"]
+description = "Format check, lint, test, and build"
+depends = ["fmt-check", "lint", "test", "build-check"]
 
 [tasks.run]
 description = "Run ttools CLI"

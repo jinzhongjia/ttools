@@ -129,7 +129,7 @@ func (r *CopilotResolver) Exchange(ctx context.Context, oauthToken string) (Copi
 	if err != nil {
 		return CopilotToken{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return CopilotToken{}, errors.New("copilot token exchange failed")
 	}
@@ -177,7 +177,7 @@ func (r *CopilotResolver) ListModels(ctx context.Context, token CopilotToken) ([
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, errors.New("copilot models request failed")
 	}

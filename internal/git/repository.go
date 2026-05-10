@@ -37,7 +37,7 @@ func HasStagedChanges(repo *Repository) (bool, error) {
 		return false, err
 	}
 	for _, s := range status {
-		if s.Staging != gogit.Unmodified {
+		if isStagedStatus(s.Staging) {
 			return true, nil
 		}
 	}
@@ -62,7 +62,7 @@ func GetStagedDiffs(repo *Repository) ([]FileDiff, error) {
 
 	var diffs []FileDiff
 	for path, st := range status {
-		if st.Staging == gogit.Unmodified {
+		if !isStagedStatus(st.Staging) {
 			continue
 		}
 		fd := FileDiff{Path: path, Status: mapStatus(st.Staging)}
@@ -89,6 +89,10 @@ func GetStagedDiffs(repo *Repository) ([]FileDiff, error) {
 		diffs = append(diffs, fd)
 	}
 	return diffs, nil
+}
+
+func isStagedStatus(code gogit.StatusCode) bool {
+	return code != gogit.Unmodified && code != gogit.Untracked
 }
 
 func Commit(repo *Repository, message string) (plumbing.Hash, error) {
@@ -138,7 +142,7 @@ func indexFileContent(repo *Repository, idx *formatindex.Index, path string) (st
 		if err != nil {
 			return "", err
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }()
 		buf := new(strings.Builder)
 		if _, err := io.Copy(buf, reader); err != nil {
 			return "", err

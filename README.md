@@ -102,10 +102,22 @@ Common tasks:
 
 ```bash
 mise run fmt
+mise run fmt-check
+mise run lint
 mise run test
 mise run build
 mise run check
 ```
+
+`mise run build` writes the CLI binary to:
+
+```text
+bin/ttools
+```
+
+`mise run build-check` only checks that all Go packages compile and does not produce artifacts.
+
+CI runs formatting checks, `go test ./...`, `go build ./...`, and `golangci-lint` on pushes and pull requests.
 
 This project follows TDD:
 

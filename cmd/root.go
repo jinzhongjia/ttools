@@ -122,19 +122,25 @@ func newCommitCommand(deps Deps, cfgOpts *config.Options) *cobra.Command {
 				return errors.New("AI returned an empty commit message")
 			}
 			out := cmd.OutOrStdout()
-			fmt.Fprintf(out, "Suggested commit message:\n\n%s\n", msg)
+			if _, err := fmt.Fprintf(out, "Suggested commit message:\n\n%s\n", msg); err != nil {
+				return err
+			}
 			if dryRun {
 				return nil
 			}
 			if !yes && !confirm(cmd.InOrStdin(), out) {
-				fmt.Fprintln(out, "Commit cancelled.")
+				if _, err := fmt.Fprintln(out, "Commit cancelled."); err != nil {
+					return err
+				}
 				return nil
 			}
 			hash, err := gitSvc.Commit(repo, msg)
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(out, "Committed successfully: %s\n", hash)
+			if _, err := fmt.Fprintf(out, "Committed successfully: %s\n", hash); err != nil {
+				return err
+			}
 			return nil
 		},
 	}
@@ -144,7 +150,7 @@ func newCommitCommand(deps Deps, cfgOpts *config.Options) *cobra.Command {
 }
 
 func confirm(in io.Reader, out io.Writer) bool {
-	fmt.Fprint(out, "\nCommit with this message? [Y/n] ")
+	_, _ = fmt.Fprint(out, "\nCommit with this message? [Y/n] ")
 	var answer string
 	_, _ = fmt.Fscanln(in, &answer)
 	answer = strings.TrimSpace(strings.ToLower(answer))

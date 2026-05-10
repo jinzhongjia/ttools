@@ -100,6 +100,47 @@ func TestFileDiffClassifiesGeneratedAndBinaryFiles(t *testing.T) {
 	}
 }
 
+func TestUntrackedAndUnstagedFilesAreNotStagedChanges(t *testing.T) {
+	dir := t.TempDir()
+	repo, err := gogit.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, dir, "tracked.txt", "initial\n")
+	if _, err := wt.Add("tracked.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wt.Commit("initial", &gogit.CommitOptions{Author: &object.Signature{Name: "Test", Email: "test@example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	writeFile(t, dir, "tracked.txt", "modified but unstaged\n")
+	writeFile(t, dir, "untracked.txt", "not staged\n")
+
+	opened, err := OpenRepository(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	has, err := HasStagedChanges(opened)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if has {
+		t.Fatal("unstaged and untracked files must not count as staged changes")
+	}
+	diffs, err := GetStagedDiffs(opened)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(diffs) != 0 {
+		t.Fatalf("expected no staged diffs, got %+v", diffs)
+	}
+}
+
 func writeFile(t *testing.T, root, name, content string) {
 	t.Helper()
 	path := filepath.Join(root, name)

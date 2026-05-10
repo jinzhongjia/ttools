@@ -7,8 +7,10 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"ttools/internal/ai"
 	"ttools/internal/auth"
@@ -132,7 +134,9 @@ func newCommitCommand(deps Deps, cfgOpts *config.Options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			msg, err := aiSvc.GenerateCommitMessage(cmd.Context(), diffs)
+			msg, err := generateWithIndicator(cmd.OutOrStdout(), func() (string, error) {
+				return aiSvc.GenerateCommitMessage(cmd.Context(), diffs)
+			})
 			if err != nil {
 				return err
 			}
@@ -199,6 +203,37 @@ func pluralize(word string, count int) string {
 		return word
 	}
 	return word + "s"
+}
+
+func generateWithIndicator(out io.Writer, generate func() (string, error)) (string, error) {
+	if !isTerminalWriter(out) {
+		return generate()
+	}
+
+	done := make(chan struct{})
+	go func() {
+		frames := []string{"Generating.  ", "Generating.. ", "Generating..."}
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
+		for i := 0; ; i++ {
+			_, _ = fmt.Fprintf(out, "\r%s", frames[i%len(frames)])
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
+
+	msg, err := generate()
+	close(done)
+	_, _ = fmt.Fprint(out, "\r\033[K")
+	return msg, err
+}
+
+func isTerminalWriter(w io.Writer) bool {
+	file, ok := w.(interface{ Fd() uintptr })
+	return ok && term.IsTerminal(int(file.Fd()))
 }
 
 func confirm(in io.Reader, out io.Writer) bool {

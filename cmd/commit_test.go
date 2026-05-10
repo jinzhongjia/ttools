@@ -137,3 +137,19 @@ func TestCommitCancelsWhenStageSelectionIsEmpty(t *testing.T) {
 		t.Fatalf("output = %s", out.String())
 	}
 }
+
+func TestGenerateWithIndicatorSkipsSpinnerForNonTerminalWriter(t *testing.T) {
+	var out bytes.Buffer
+	msg, err := generateWithIndicator(&out, func() (string, error) {
+		return "feat: test", nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg != "feat: test" {
+		t.Fatalf("msg = %q", msg)
+	}
+	if out.String() != "" {
+		t.Fatalf("expected no spinner output for non-terminal writer, got %q", out.String())
+	}
+}

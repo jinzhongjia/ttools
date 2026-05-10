@@ -236,7 +236,7 @@ func printSuggestedCommitMessage(out io.Writer, msg string) error {
 		_, err := fmt.Fprintf(out, "Suggested commit message:\n\n%s\n", msg)
 		return err
 	}
-	return typewriterPrint(out, "Suggested commit message:\n\n"+msg+"\n", 5*time.Millisecond)
+	return typewriterPrint(out, "Suggested commit message:\n\n"+msg+"\n", 10*time.Millisecond)
 }
 
 func typewriterPrint(out io.Writer, text string, delay time.Duration) error {

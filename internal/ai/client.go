@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	gitx "ttools/internal/git"
+	gitx "github.com/jinzhongjia/ttools/internal/git"
 )
 
 const MaxFilePatchBytes = 12 * 1024

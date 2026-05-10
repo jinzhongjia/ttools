@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"ttools/cmd"
+	"github.com/jinzhongjia/ttools/cmd"
 )
 
 func main() {

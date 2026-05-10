@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	gitx "ttools/internal/git"
+	gitx "github.com/jinzhongjia/ttools/internal/git"
 )
 
 type fakeClient struct {

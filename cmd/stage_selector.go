@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	gitx "ttools/internal/git"
+	gitx "github.com/jinzhongjia/ttools/internal/git"
 )
 
 type StageSelector interface {

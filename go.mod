@@ -1,4 +1,4 @@
-module ttools
+module github.com/jinzhongjia/ttools
 
 go 1.26.3
 

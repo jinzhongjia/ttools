@@ -12,11 +12,11 @@ import (
 	"charm.land/fantasy"
 	"charm.land/fantasy/providers/openaicompat"
 
-	"ttools/internal/ai"
-	"ttools/internal/auth"
-	"ttools/internal/config"
-	gitx "ttools/internal/git"
-	"ttools/internal/prompt"
+	"github.com/jinzhongjia/ttools/internal/ai"
+	"github.com/jinzhongjia/ttools/internal/auth"
+	"github.com/jinzhongjia/ttools/internal/config"
+	gitx "github.com/jinzhongjia/ttools/internal/git"
+	"github.com/jinzhongjia/ttools/internal/prompt"
 )
 
 type CopilotAuth interface {

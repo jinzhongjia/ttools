@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"ttools/internal/ai"
-	"ttools/internal/auth"
-	"ttools/internal/config"
-	gitx "ttools/internal/git"
-	"ttools/internal/provider"
+	"github.com/jinzhongjia/ttools/internal/ai"
+	"github.com/jinzhongjia/ttools/internal/auth"
+	"github.com/jinzhongjia/ttools/internal/config"
+	gitx "github.com/jinzhongjia/ttools/internal/git"
+	"github.com/jinzhongjia/ttools/internal/provider"
 )
 
 type GitService interface {

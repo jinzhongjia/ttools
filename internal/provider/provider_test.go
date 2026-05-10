@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"ttools/internal/config"
+	"github.com/jinzhongjia/ttools/internal/config"
 )
 
 func TestNewFactorySelectsSupportedProviders(t *testing.T) {

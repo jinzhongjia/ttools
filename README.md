@@ -2,6 +2,14 @@
 
 Go CLI developer tools.
 
+## Install
+
+```bash
+go install github.com/jinzhongjia/ttools@latest
+```
+
+Make sure your Go binary directory, usually `$GOBIN` or `$GOPATH/bin`, is in your `PATH`.
+
 ## AI commit
 
 Generate a commit message from currently staged files and commit them:

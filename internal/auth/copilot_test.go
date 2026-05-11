@@ -29,6 +29,40 @@ func TestFindCopilotOAuthTokenFromHostsJSON(t *testing.T) {
 	}
 }
 
+func TestFindCopilotOAuthTokenSearchesMultipleConfigRoots(t *testing.T) {
+	missingDir := t.TempDir()
+	actualDir := t.TempDir()
+	cfg := filepath.Join(actualDir, "github-copilot")
+	if err := os.MkdirAll(cfg, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg, "apps.json"), []byte(`{"github.com":{"oauth_token":"apps-token"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	token, err := FindCopilotOAuthToken(missingDir, actualDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "apps-token" {
+		t.Fatalf("token = %q", token)
+	}
+}
+
+func TestCopilotConfigRootUsesHomeDotConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	root, err := CopilotConfigRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(home, ".config")
+	if root != want {
+		t.Fatalf("root = %q, want %q", root, want)
+	}
+}
+
 func TestExchangeCopilotToken(t *testing.T) {
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

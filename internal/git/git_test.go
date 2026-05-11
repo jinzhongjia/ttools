@@ -16,6 +16,7 @@ func TestStagedDiffAndCommit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	setUserConfig(t, repo, "Test", "test@example.com")
 	wt, err := repo.Worktree()
 	if err != nil {
 		t.Fatal(err)
@@ -60,6 +61,67 @@ func TestStagedDiffAndCommit(t *testing.T) {
 	}
 	if hash.IsZero() {
 		t.Fatal("zero hash")
+	}
+}
+
+func TestCommitRequiresConfiguredGitUser(t *testing.T) {
+	dir := t.TempDir()
+	repo, err := gogit.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, dir, "hello.txt", "hello\n")
+	if _, err := wt.Add("hello.txt"); err != nil {
+		t.Fatal(err)
+	}
+
+	opened, err := OpenRepository(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Commit(opened, "feat: add hello")
+	if err == nil {
+		t.Fatal("expected missing user config error")
+	}
+	if !strings.Contains(err.Error(), "git user.name and user.email") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestCommitUsesConfiguredGitUser(t *testing.T) {
+	dir := t.TempDir()
+	repo, err := gogit.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setUserConfig(t, repo, "Real User", "real@example.com")
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, dir, "hello.txt", "hello\n")
+	if _, err := wt.Add("hello.txt"); err != nil {
+		t.Fatal(err)
+	}
+
+	opened, err := OpenRepository(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, err := Commit(opened, "feat: add hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if commit.Author.Name != "Real User" || commit.Author.Email != "real@example.com" {
+		t.Fatalf("author = %+v", commit.Author)
 	}
 }
 
@@ -190,6 +252,19 @@ func TestGetWorktreeChangesAndStageFiles(t *testing.T) {
 	}
 	if len(diffs) != 2 {
 		t.Fatalf("diffs = %+v", diffs)
+	}
+}
+
+func setUserConfig(t *testing.T, repo *gogit.Repository, name, email string) {
+	t.Helper()
+	cfg, err := repo.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.User.Name = name
+	cfg.User.Email = email
+	if err := repo.Storer.SetConfig(cfg); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -211,11 +211,18 @@ func generateWithIndicator(out io.Writer, generate func() (string, error)) (stri
 	}
 
 	done := make(chan struct{})
+	stopped := make(chan struct{})
 	go func() {
+		defer close(stopped)
 		frames := []string{"Generating.  ", "Generating.. ", "Generating..."}
 		ticker := time.NewTicker(250 * time.Millisecond)
 		defer ticker.Stop()
 		for i := 0; ; i++ {
+			select {
+			case <-done:
+				return
+			default:
+			}
 			_, _ = fmt.Fprintf(out, "\r%s", frames[i%len(frames)])
 			select {
 			case <-done:
@@ -227,6 +234,7 @@ func generateWithIndicator(out io.Writer, generate func() (string, error)) (stri
 
 	msg, err := generate()
 	close(done)
+	<-stopped
 	_, _ = fmt.Fprint(out, "\r\033[K")
 	return msg, err
 }
@@ -249,7 +257,7 @@ func typewriterPrint(out io.Writer, text string, delay time.Duration) error {
 	return nil
 }
 
-func isTerminalWriter(w io.Writer) bool {
+var isTerminalWriter = func(w io.Writer) bool {
 	file, ok := w.(interface{ Fd() uintptr })
 	return ok && term.IsTerminal(int(file.Fd()))
 }

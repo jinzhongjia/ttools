@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
-	"os"
 	"strings"
 
 	"charm.land/fantasy"
@@ -87,11 +86,11 @@ func (c *fantasyClient) generate(ctx context.Context, userPrompt string) (string
 			return "", errors.New("copilot auth resolver is required")
 		}
 		if c.oauthToken == "" {
-			configDir, err := os.UserConfigDir()
+			configRoot, err := auth.CopilotConfigRoot()
 			if err != nil {
 				return "", err
 			}
-			token, err := auth.FindCopilotOAuthToken(configDir)
+			token, err := auth.FindCopilotOAuthToken(configRoot)
 			if err != nil {
 				return "", err
 			}

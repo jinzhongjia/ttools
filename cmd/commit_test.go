@@ -3,8 +3,11 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
+	"io"
 	"strings"
 	"testing"
+	"time"
 
 	gitx "github.com/jinzhongjia/ttools/internal/git"
 )
@@ -44,6 +47,12 @@ type fakeCommitAI struct{}
 func (fakeCommitAI) GenerateCommitMessage(ctx context.Context, diffs []gitx.FileDiff) (string, error) {
 	return "feat: test commit", nil
 }
+
+type fakeTerminalWriter struct {
+	bytes.Buffer
+}
+
+func (fakeTerminalWriter) Fd() uintptr { return 0 }
 
 type fakeStageSelector struct {
 	paths []string
@@ -151,6 +160,28 @@ func TestGenerateWithIndicatorSkipsSpinnerForNonTerminalWriter(t *testing.T) {
 	}
 	if out.String() != "" {
 		t.Fatalf("expected no spinner output for non-terminal writer, got %q", out.String())
+	}
+}
+
+func TestGenerateWithIndicatorClearsSpinnerBeforeReturningTerminalErrors(t *testing.T) {
+	var out fakeTerminalWriter
+	terminalWriter := isTerminalWriter
+	isTerminalWriter = func(io.Writer) bool { return true }
+	t.Cleanup(func() { isTerminalWriter = terminalWriter })
+
+	_, err := generateWithIndicator(&out, func() (string, error) {
+		time.Sleep(10 * time.Millisecond)
+		return "", errors.New("boom")
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	got := out.String()
+	if !strings.HasSuffix(got, "\r\033[K") {
+		t.Fatalf("spinner was not cleared last, output = %q", got)
+	}
+	if strings.Contains(strings.TrimSuffix(got, "\r\033[K"), "\r\033[K") {
+		t.Fatalf("spinner was cleared before it stopped, output = %q", got)
 	}
 }
 

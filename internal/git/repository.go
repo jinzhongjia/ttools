@@ -153,11 +153,10 @@ func Commit(repo *Repository, message string) (plumbing.Hash, error) {
 		return plumbing.ZeroHash, err
 	}
 	cfg, _ := repo.Git.Config()
-	author := &object.Signature{Name: "ttools", Email: "ttools@example.invalid", When: time.Now()}
-	if cfg != nil && cfg.User.Name != "" && cfg.User.Email != "" {
-		author.Name = cfg.User.Name
-		author.Email = cfg.User.Email
+	if cfg == nil || cfg.User.Name == "" || cfg.User.Email == "" {
+		return plumbing.ZeroHash, errors.New("git user.name and user.email must be configured")
 	}
+	author := &object.Signature{Name: cfg.User.Name, Email: cfg.User.Email, When: time.Now()}
 	return wt.Commit(message, &gogit.CommitOptions{Author: author})
 }
 

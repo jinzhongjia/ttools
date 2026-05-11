@@ -63,21 +63,31 @@ func NewCopilotResolver(opts ResolverOptions) *CopilotResolver {
 	}
 }
 
-func FindCopilotOAuthToken(configRoot string) (string, error) {
+func FindCopilotOAuthToken(configRoots ...string) (string, error) {
 	if tok := os.Getenv("GITHUB_TOKEN"); tok != "" {
 		return tok, nil
 	}
-	for _, name := range []string{"hosts.json", "apps.json"} {
-		path := filepath.Join(configRoot, "github-copilot", name)
-		data, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		if token := findOAuthToken(data); token != "" {
-			return token, nil
+	for _, configRoot := range configRoots {
+		for _, name := range []string{"hosts.json", "apps.json"} {
+			path := filepath.Join(configRoot, "github-copilot", name)
+			data, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			if token := findOAuthToken(data); token != "" {
+				return token, nil
+			}
 		}
 	}
 	return "", errors.New("copilot oauth token not found")
+}
+
+func CopilotConfigRoot() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(homeDir, ".config"), nil
 }
 
 func findOAuthToken(data []byte) string {

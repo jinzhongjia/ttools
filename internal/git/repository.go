@@ -8,6 +8,7 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	formatindex "github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -152,12 +153,27 @@ func Commit(repo *Repository, message string) (plumbing.Hash, error) {
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
-	cfg, _ := repo.Git.Config()
-	if cfg == nil || cfg.User.Name == "" || cfg.User.Email == "" {
-		return plumbing.ZeroHash, errors.New("git user.name and user.email must be configured")
+	user, err := gitUserConfig(repo)
+	if err != nil {
+		return plumbing.ZeroHash, err
 	}
-	author := &object.Signature{Name: cfg.User.Name, Email: cfg.User.Email, When: time.Now()}
+	author := &object.Signature{Name: user.Name, Email: user.Email, When: time.Now()}
 	return wt.Commit(message, &gogit.CommitOptions{Author: author})
+}
+
+type userConfig struct {
+	Name  string
+	Email string
+}
+
+func gitUserConfig(repo *Repository) (userConfig, error) {
+	if cfg, err := repo.Git.Config(); err == nil && cfg != nil && cfg.User.Name != "" && cfg.User.Email != "" {
+		return userConfig{Name: cfg.User.Name, Email: cfg.User.Email}, nil
+	}
+	if cfg, err := gitconfig.LoadConfig(gitconfig.GlobalScope); err == nil && cfg != nil && cfg.User.Name != "" && cfg.User.Email != "" {
+		return userConfig{Name: cfg.User.Name, Email: cfg.User.Email}, nil
+	}
+	return userConfig{}, errors.New("git user.name and user.email must be configured")
 }
 
 func headTree(repo *Repository) (*object.Tree, error) {

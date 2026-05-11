@@ -65,6 +65,8 @@ func TestStagedDiffAndCommit(t *testing.T) {
 }
 
 func TestCommitRequiresConfiguredGitUser(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	dir := t.TempDir()
 	repo, err := gogit.PlainInit(dir, false)
 	if err != nil {
@@ -89,6 +91,43 @@ func TestCommitRequiresConfiguredGitUser(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "git user.name and user.email") {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestCommitUsesGlobalGitUserWhenLocalUserIsMissing(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	writeFile(t, home, ".gitconfig", "[user]\n\tname = Global User\n\temail = global@example.com\n")
+
+	dir := t.TempDir()
+	repo, err := gogit.PlainInit(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, dir, "hello.txt", "hello\n")
+	if _, err := wt.Add("hello.txt"); err != nil {
+		t.Fatal(err)
+	}
+
+	opened, err := OpenRepository(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, err := Commit(opened, "feat: add hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if commit.Author.Name != "Global User" || commit.Author.Email != "global@example.com" {
+		t.Fatalf("author = %+v", commit.Author)
 	}
 }
 
